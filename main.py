@@ -84,5 +84,5 @@ def predict_daily_calories(csv_file_path):
 
 if __name__ == "__main__":
     # Ensure this matches the exact name of your uploaded file
-    file_name = 'diet_recommendations_dataset.csv'
+    file_name = 'scientifically_corrected_diet_dataset.csv'
     predict_daily_calories(file_name)
