@@ -1,133 +1,188 @@
 import pandas as pd
-from datetime import datetime
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
 import os
 
-def calculate_bmi(weight, height):
-    # Height in meters
-    h_m = height / 100
-    bmi = weight / (h_m ** 2)
-    
-    if bmi < 18.5:
-        category = "Underweight"
-    elif 18.5 <= bmi < 24.9:
-        category = "Normal Weight"
-    elif 25 <= bmi < 29.9:
-        category = "Overweight"
-    else:
-        category = "Obese"
-    return bmi, category
+# THE AI BRAIN
+class DietRecommenderAI:
+    def __init__(self, csv_file):
+        self.model = RandomForestClassifier(n_estimators=100, random_state=42)
+        self.encoders = {}
+        if os.path.exists(csv_file):
+            self.train_model(csv_file)
+        else:
+            print(f"Error: {csv_file} not found. Run the generator script first.")
 
-def calculate_macros(calories, goal):
+    def train_model(self, file_path):
+        df = pd.read_csv(file_path)
+        # Robust Training: Force text format and handle missing values
+        for col in ['Disease_Type', 'Diet_Recommendation']:
+            df[col] = df[col].fillna('None').astype(str)
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col])
+            self.encoders[col] = le
+            
+        X = df[['Age', 'Weight_kg', 'BMI', 'Disease_Type']]
+        y = df['Diet_Recommendation']
+        self.model.fit(X, y)
+
+    def predict(self, age, weight, height, disease):
+        bmi = weight / ((height/100) ** 2)
+        disease = str(disease).strip()
+        
+        # Safe encoding
+        le = self.encoders['Disease_Type']
+        if disease in le.classes_:
+            disease_code = le.transform([disease])[0]
+        else:
+            disease_code = le.transform(['None'])[0] # Default to healthy
+            
+        pred = self.model.predict([[age, weight, bmi, disease_code]])[0]
+        return self.encoders['Diet_Recommendation'].inverse_transform([pred])[0]
+
+# THE NUTRITIONIST ENGINE (New Features)
+def calculate_macros(calories, diet_type):
     """
-    Returns grams of Protein, Fats, Carbs based on goal.
-    Protein = 4 kcal/g, Carbs = 4 kcal/g, Fat = 9 kcal/g
+    Returns grams of Protein, Fat, Carbs based on the specific diet.
     """
-    if goal == 'lose':
-        # High Protein for satiety (40% P / 35% F / 25% C)
-        p_ratio, f_ratio, c_ratio = 0.40, 0.35, 0.25
-    elif goal == 'gain':
-        # High Carb for energy (30% P / 20% F / 50% C)
-        p_ratio, f_ratio, c_ratio = 0.30, 0.20, 0.50
-    else: # Maintain
-        # Balanced (30% P / 30% F / 40% C)
-        p_ratio, f_ratio, c_ratio = 0.30, 0.30, 0.40
-
-    protein_g = (calories * p_ratio) / 4
-    fat_g = (calories * f_ratio) / 9
-    carbs_g = (calories * c_ratio) / 4
+    if diet_type == 'Low_Carb':
+        # 30% Protein, 50% Fat, 20% Carbs
+        ratios = (0.30, 0.50, 0.20)
+    elif diet_type == 'Low_Sodium':
+        # Standard Balanced: 30% P, 30% F, 40% C
+        ratios = (0.30, 0.30, 0.40)
+    else: # Balanced
+        # Standard: 30% P, 30% F, 40% C
+        ratios = (0.30, 0.30, 0.40)
+        
+    protein = int((calories * ratios[0]) / 4)
+    fat = int((calories * ratios[1]) / 9)
+    carbs = int((calories * ratios[2]) / 4)
     
-    return int(protein_g), int(fat_g), int(carbs_g)
+    return {'Protein': protein, 'Fats': fat, 'Carbs': carbs}
 
-def log_patient_data(data):
-    file_name = 'patient_history_log.csv'
-    df = pd.DataFrame([data])
+def get_meal_plan(diet_type):
+    """
+    Returns a sample daily menu based on the diet.
+    """
+    menus = {
+        'Low_Carb': {
+            'Breakfast': 'Omelet with Spinach & Avocado',
+            'Lunch': 'Grilled Chicken Caesar Salad (No Croutons)',
+            'Dinner': 'Baked Salmon with Asparagus & Butter',
+            'Snack': 'Almonds or Cheese Stick'
+        },
+        'Low_Sodium': {
+            'Breakfast': 'Oatmeal with Fresh Berries (No Salt)',
+            'Lunch': 'Quinoa Bowl with Roasted Veggies',
+            'Dinner': 'Lemon Herb Chicken with Steamed Broccoli',
+            'Snack': 'Apple Slices with Unsalted Peanut Butter'
+        },
+        'Balanced': {
+            'Breakfast': 'Greek Yogurt with Granola & Honey',
+            'Lunch': 'Turkey & Avocado Sandwich on Whole Wheat',
+            'Dinner': 'Lean Beef Stir-fry with Brown Rice',
+            'Snack': 'Banana or Protein Bar'
+        }
+    }
+    return menus.get(diet_type, menus['Balanced'])
+
+def draw_bmi_bar(bmi):
+    """
+    Visualizes BMI on a simple text bar.
+    """
+    # Scale: 15 (min) to 40 (max)
+    categories = ["Under", "Normal", "Over", "Obese"]
+    pointer = min(max(int(bmi - 15), 0), 25) # Clamp visualization range
+    bar = ["-"] * 26
+    bar[pointer] = "▲" # The user's position
     
-    # Append to CSV if exists, else create new
-    if os.path.exists(file_name):
-        df.to_csv(file_name, mode='a', header=False, index=False)
-    else:
-        df.to_csv(file_name, mode='w', header=True, index=False)
-    print(f"\n[Disk] Data saved to {file_name}")
+    print("\n   BMI SCALE:")
+    print("   15 [ " + "".join(bar) + " ] 40")
+    print("      |      |      |      |")
+    print("     Undr   Norm   Over   Obes")
 
+# MAIN APP
 def main():
+    print("\n" + "="*60)
+    print("COMPLETE AI HEALTH COACH")
     print("="*60)
-    print("ADVANCED HEALTH & DIET PLANNER")
-    print("="*60)
-
+    
+    dataset_file = 'realistic_diet_dataset.csv'
+    ai = DietRecommenderAI(dataset_file)
+    
     try:
-        # Inputs
-        name = input("Patient Name: ")
+        # User Input
+        name = input("Name: ")
         age = int(input("Age: "))
-        gender = input("Gender (Male/Female): ").strip().title()
+        gender = input("Gender (Male/Female): ").strip()
         weight = float(input("Weight (kg): "))
         height = float(input("Height (cm): "))
         
-        print("\nActivity Levels: 1=Sedentary, 2=Moderate, 3=Active, 4=Very Active")
-        act_map = {'1': 1.2, '2': 1.55, '3': 1.725, '4': 1.9}
-        act_choice = input("Choose Level (1-4): ")
-        activity_multiplier = act_map.get(act_choice, 1.2)
-
-        print("\nGoals: 1=Lose Weight, 2=Maintain, 3=Gain Muscle")
-        goal_choice = input("Choose Goal (1-3): ")
+        # Show options
+        if hasattr(ai, 'encoders'):
+             opts = [str(x) for x in ai.encoders['Disease_Type'].classes_]
+             print(f"\nConditions: {', '.join(opts)}")
+        disease = input("Condition (or 'None'): ").strip()
         
+        print("\nActivity: Sedentary, Moderate, Active")
+        activity = input("Activity: ").strip()
+        print("\nGoal: Lose Weight, Maintain, Gain Muscle")
+        goal = input("Goal: ").strip()
+
         # Calculations
-        # BMR (Mifflin-St Jeor)
-        if gender == 'Male':
-            bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+        # Calories (Mifflin-St Jeor)
+        if gender.lower() == 'male':
+            bmr = (10*weight) + (6.25*height) - (5*age) + 5
         else:
-            bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
-            
-        tdee = bmr * activity_multiplier # Total Daily Energy Expenditure
+            bmr = (10*weight) + (6.25*height) - (5*age) - 161
+        
+        mults = {'sedentary': 1.2, 'moderate': 1.55, 'active': 1.725}
+        tdee = bmr * mults.get(activity.lower(), 1.2)
+        
+        if goal == 'Lose Weight': target_cals = int(tdee - 500)
+        elif goal == 'Gain Muscle': target_cals = int(tdee + 500)
+        else: target_cals = int(tdee)
+        target_cals = max(target_cals, 1200)
 
-        # Goal Adjustment
-        if goal_choice == '1':
-            target_calories = tdee - 500
-            goal_label = 'lose'
-        elif goal_choice == '3':
-            target_calories = tdee + 500
-            goal_label = 'gain'
-        else:
-            target_calories = tdee
-            goal_label = 'maintain'
-
-        # BMI & Macros
-        bmi, bmi_category = calculate_bmi(weight, height)
-        protein, fats, carbs = calculate_macros(target_calories, goal_label)
-
-        # Generate Report
+        # AI Prediction
+        diet_type = ai.predict(age, weight, height, disease)
+        
+        # Nutrition Breakdown
+        macros = calculate_macros(target_cals, diet_type)
+        menu = get_meal_plan(diet_type)
+        
+        # FINAL REPORT
         print("\n" + "="*60)
-        print(f" REPORT FOR: {name.upper()}")
+        print(f"PERSONALIZED PLAN: {name.upper()}")
         print("="*60)
-        print(f" BMI Status:       {bmi:.1f} ({bmi_category})")
-        print(f" Maintenance Cals: {int(tdee)} kcal")
-        print(f" TARGET CALORIES:  {int(target_calories)} kcal")
+        
+        # Visual BMI
+        bmi = weight / ((height/100)**2)
+        print(f"🔹 BMI Score: {bmi:.1f}")
+        draw_bmi_bar(bmi)
+        
+        print(f"\n🔹 RECOMMENDED DIET: {diet_type} Diet")
+        if diet_type == 'Low_Carb': print("   (Focus on high protein and healthy fats to manage insulin)")
+        elif diet_type == 'Low_Sodium': print("   (Focus on fresh foods to lower blood pressure)")
+        
         print("-" * 60)
-        print(f" MACRONUTRIENT PLAN:")
-        print(f"   Protein: {protein}g")
-        print(f"   Fats:    {fats}g")
-        print(f"   Carbs:   {carbs}g")
+        print(f"DAILY NUTRITION TARGETS ({target_cals} kcal)")
+        print(f" Protein: {macros['Protein']}g")
+        print(f" Fats:    {macros['Fats']}g")
+        print(f" Carbs:   {macros['Carbs']}g")
+        
+        print("-" * 60)
+        print(f"SAMPLE MEAL PLAN ({diet_type})")
+        print(f"Breakfast: {menu['Breakfast']}")
+        print(f" Lunch:     {menu['Lunch']}")
+        print(f" Dinner:    {menu['Dinner']}")
+        print(f" Snack:     {menu['Snack']}")
         print("="*60)
 
-        # Log Data
-        record = {
-            'Date': datetime.now().strftime("%Y-%m-%d %H:%M"),
-            'Name': name,
-            'Age': age,
-            'Gender': gender,
-            'Weight': weight,
-            'Height': height,
-            'BMI': round(bmi, 2),
-            'Status': bmi_category,
-            'Goal': goal_label,
-            'Target_Calories': int(target_calories),
-            'Protein_g': protein,
-            'Fats_g': fats,
-            'Carbs_g': carbs
-        }
-        log_patient_data(record)
-
-    except ValueError:
-        print("\nError: Please enter valid numbers.")
+    except Exception as e:
+        print(f"\nError: {e}")
 
 if __name__ == "__main__":
     main()
