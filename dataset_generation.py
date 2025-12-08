@@ -7,10 +7,6 @@ def generate_realistic_dataset(num_rows=100):
     
     data = []
     
-    # Random seed for reproducibility
-    np.random.seed(42)
-    random.seed(42)
-
     for i in range(num_rows):
         # Generate Physical Stats
         patient_id = f"P{1000+i}"
