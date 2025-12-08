@@ -51,7 +51,7 @@ def log_patient_data(data):
 
 def main():
     print("="*60)
-    print("   ADVANCED HEALTH & DIET PLANNER")
+    print("ADVANCED HEALTH & DIET PLANNER")
     print("="*60)
 
     try:
@@ -96,16 +96,16 @@ def main():
 
         # Generate Report
         print("\n" + "="*60)
-        print(f"   REPORT FOR: {name.upper()}")
+        print(f" REPORT FOR: {name.upper()}")
         print("="*60)
         print(f" BMI Status:       {bmi:.1f} ({bmi_category})")
         print(f" Maintenance Cals: {int(tdee)} kcal")
         print(f" TARGET CALORIES:  {int(target_calories)} kcal")
         print("-" * 60)
-        print(f"  MACRONUTRIENT PLAN:")
-        print(f"   • Protein: {protein}g")
-        print(f"   • Fats:    {fats}g")
-        print(f"   • Carbs:   {carbs}g")
+        print(f" MACRONUTRIENT PLAN:")
+        print(f"   Protein: {protein}g")
+        print(f"   Fats:    {fats}g")
+        print(f"   Carbs:   {carbs}g")
         print("="*60)
 
         # Log Data
@@ -127,7 +127,7 @@ def main():
         log_patient_data(record)
 
     except ValueError:
-        print("\n❌ Error: Please enter valid numbers.")
+        print("\nError: Please enter valid numbers.")
 
 if __name__ == "__main__":
     main()

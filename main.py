@@ -38,7 +38,7 @@ def predict_daily_calories(csv_file_path):
 
     # User Input
     print("="*40)
-    print("   DAILY CALORIE PREDICTOR")
+    print("DAILY CALORIE PREDICTOR")
     print("="*40)
 
     try:
@@ -51,7 +51,7 @@ def predict_daily_calories(csv_file_path):
         gender_input = input("Enter Gender: ").strip().title()
         
         if gender_input not in valid_genders:
-            print(f"❌ Invalid gender. Please enter exactly: {valid_genders}")
+            print(f"Invalid gender. Please enter exactly: {valid_genders}")
             return
         gender_encoded = le_gender.transform([gender_input])[0]
 
@@ -65,7 +65,7 @@ def predict_daily_calories(csv_file_path):
         activity_input = input("Enter Activity Level: ").strip().title()
 
         if activity_input not in valid_activities:
-            print(f"❌ Invalid activity level. Please enter exactly: {valid_activities}")
+            print(f"Invalid activity level. Please enter exactly: {valid_activities}")
             return
         activity_encoded = le_activity.transform([activity_input])[0]
 
@@ -81,7 +81,7 @@ def predict_daily_calories(csv_file_path):
         print("-" * 40)
 
     except ValueError:
-        print("\n❌ Error: Please enter valid numbers for Age, Weight, and Height.")
+        print("\nError: Please enter valid numbers for Age, Weight, and Height.")
 
 if __name__ == "__main__":
     # Ensure this matches the exact name of your uploaded file
