@@ -23,7 +23,18 @@ class FitAIApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("FitAI Coach")
-        self.geometry("1400x900")
+
+        # Fill the available display (e.g. 1920x1080) instead of a fixed small window,
+        # while keeping a sane floor so the layout never has to squeeze below usability.
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        self.geometry(f"{screen_w}x{screen_h}+0+0")
+        self.minsize(1024, 700)
+        try:
+            self.state("zoomed")
+        except Exception:
+            pass
+
         self.configure(fg_color=BG_MAIN)
         ctk.set_appearance_mode("dark")
         

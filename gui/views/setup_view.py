@@ -11,20 +11,47 @@ class SetupView(ctk.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        card = ctk.CTkFrame(self, fg_color=BG_CARD, corner_radius=20, width=560)
-        card.grid(row=0, column=0, pady=40, padx=50)
+        # Card scales with the window/screen (e.g. wider on 1920x1080, narrower on
+        # smaller displays) instead of a fixed pixel width, so it always looks
+        # proportionate rather than either stranded in empty space or overflowing.
+        outer = ctk.CTkFrame(self, fg_color="transparent")
+        outer.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        outer.grid_rowconfigure(0, weight=1)
+        outer.grid_columnconfigure(0, weight=1)
+
+        card = ctk.CTkFrame(outer, fg_color=BG_CARD, corner_radius=20)
+        card.grid(row=0, column=0)
+
+        # Scrollable so every field stays reachable (never clipped) even on
+        # shorter screens where the full form wouldn't otherwise fit vertically.
+        form_frame = ctk.CTkScrollableFrame(card, fg_color="transparent",
+                                            height=460,
+                                            scrollbar_button_color=BG_CARD,
+                                            scrollbar_button_hover_color="#334155")
+        form_frame.grid_columnconfigure((0, 1), weight=1)
+
+        def _resize_card(event):
+            screen_w = self.winfo_screenwidth()
+            screen_h = self.winfo_screenheight()
+            width = max(480, min(680, int(screen_w * 0.34)))
+            # Tall enough to show every field without scrolling on large screens
+            # (e.g. 1920x1080); shrinks on smaller displays where the scrollable
+            # frame's own scrollbar keeps every field reachable.
+            height = max(260, min(460, screen_h - 380))
+            card.configure(width=width)
+            form_frame.configure(height=height)
+
+        outer.bind("<Configure>", _resize_card)
 
         ctk.CTkLabel(card, text="Personalize Your AI Plan",
                      font=ctk.CTkFont(size=28, weight="bold"),
-                     text_color=TEXT_MAIN).pack(pady=(40, 6))
+                     text_color=TEXT_MAIN).pack(pady=(32, 6))
         ctk.CTkLabel(card,
                      text="Enter your metrics to generate a custom nutrition & fitness dashboard.",
                      font=ctk.CTkFont(size=13), text_color=TEXT_DIM,
-                     wraplength=460).pack(pady=(0, 24))
+                     wraplength=460).pack(pady=(0, 20))
 
-        form_frame = ctk.CTkFrame(card, fg_color="transparent")
-        form_frame.pack(fill="both", expand=True, padx=40, pady=(0, 20))
-        form_frame.grid_columnconfigure((0, 1), weight=1)
+        form_frame.pack(fill="both", expand=True, padx=40, pady=(0, 16))
 
         # ── Form variables ────────────────────────────────────────────────────
         self.name_var        = ctk.StringVar(value="")
